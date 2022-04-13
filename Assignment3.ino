@@ -1,5 +1,22 @@
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_system.h"
+#define Watchdog 7
+#define LED 12
+#define BUTTON 3
+#define ANALOGUE 14
+
+int average_analogue = 0;
+int BUTTONstate = 0;
+int Frequency = 0;
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(9600);
+  pinMode(Watchdog, OUTPUT);
+  pinMode(LED, OUTPUT);
+  pinMode(BUTTON,INPUT);
+  pinMode(ANALOGUE,INPUT);
 
 }
 
