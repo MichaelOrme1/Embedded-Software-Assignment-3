@@ -17,13 +17,13 @@ int average_analogue = 0;
 int BUTTONstate = 0;
 int Frequency = 0;
 
+//Struct for printing
 typedef struct Output {
   int average_analogue;
   int BUTTONstate;
   int Frequency;
   
 } Output;
-
 
 
 
@@ -36,7 +36,9 @@ void Task7and8( void *pvParameters );
 void Task9( void *pvParameters );
 
 
-
+SemaphoreHandle_t AnalogSemaphore;
+SemaphoreHandle_t FrequencySemaphore;
+SemaphoreHandle_t ButtonSemaphore;
 
 
 
@@ -49,12 +51,13 @@ void setup() {
   pinMode(ANALOGUE,INPUT);
   pinMode(ANALOGUEVALUE, OUTPUT);
 
+//Creat FreeRTOS Tasks
    xTaskCreate(
-    Task1
-    ,  "task1"   
-    ,  256 
+    Task1//Function name
+    ,  "task1"//Identifier   
+    ,  256//Stack size
     ,  NULL
-    ,  1  
+    ,  1  //Priority
     ,  NULL );
     xTaskCreate(
     Task2
@@ -116,13 +119,15 @@ void Task1(void *pvParameters ){
 
 void Task2(void *pvParameters ){
   BUTTONstate = digitalRead(BUTTON); //Read button
+  xSemaphoreGive(ButtonSemaphore);
 }
 
 void Task3(void *pvParameters ){
   int onTime = pulseIn(Watchdog,HIGH);//Get time pulse was High
   int offTime = pulseIn(Watchdog,LOW);//Get time pulse was Low
   int period = onTime+offTime;//Total time
-  Frequency = 1000000.0/period;//Get frequency
+  Frequency = 1000000.0/period;//Get frequency in Hz
+  xSemaphoreGive(FrequencySemaphore);
   
 }
 
@@ -135,6 +140,7 @@ void Task4and5(void *pvParameters ){
   int analogue4 = analogRead(ANALOGUE);
 
   average_analogue = (analogue1+analogue2+analogue3+analogue4)/4;//Get average analogue
+  xSemaphoreGive(AnalogSemaphore);
 }
 
 
@@ -165,11 +171,13 @@ else{
 void Task9(void *pvParameters ){
   //CSV
   //Semaphores to wait for values
-  if (BUTTONstate == HIGH){//Only print when Button pressed
-    Serial.print(BUTTONstate);
-    Serial.print(",");
-    Serial.print(average_analogue);
-    Serial.print(",");
-    Serial.print(Frequency);
+  if ((xSemaphoreTake(AnalogSemaphore, portMAX_DELAY) == pdPASS) and (xSemaphoreTake(FrequencySemaphore, portMAX_DELAY) == pdPASS) and (xSemaphoreTake(ButtonSemaphore, portMAX_DELAY) == pdPASS)) {
+    if (BUTTONstate == HIGH){//Only print when Button pressed
+      Serial.print(BUTTONstate);
+      Serial.print(",");
+      Serial.print(average_analogue);
+      Serial.print(",");
+      Serial.print(Frequency);
   } 
+}
 }
