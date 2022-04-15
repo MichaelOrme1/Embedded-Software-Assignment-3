@@ -6,10 +6,25 @@
 #include "esp_system.h"
 
 
-#define Watchdog 7
-#define LED 12
-#define BUTTON 3
-#define ANALOGUE 14
+#define Watchdog 4
+#define LED 2
+#define BUTTON 0
+#define ANALOGUE A0
+#define ANALOGUEVALUE 10
+
+
+int average_analogue = 0;
+int BUTTONstate = 0;
+int Frequency = 0;
+
+typedef struct Output {
+  int average_analogue;
+  int BUTTONstate;
+  int Frequency;
+  
+} Output;
+
+
 
 
 void Task1( void *pvParameters );
@@ -20,69 +35,68 @@ void Task6( void *pvParameters );
 void Task7and8( void *pvParameters );
 void Task9( void *pvParameters );
 
-int average_analogue = 0;
-int BUTTONstate = 0;
-int Frequency = 0;
+
 
 
 
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(Watchdog, OUTPUT);
   pinMode(LED, OUTPUT);
   pinMode(BUTTON,INPUT);
   pinMode(ANALOGUE,INPUT);
+  pinMode(ANALOGUEVALUE, OUTPUT);
 
    xTaskCreate(
     Task1
     ,  "task1"   
-    ,  128  
+    ,  256 
     ,  NULL
     ,  1  
     ,  NULL );
     xTaskCreate(
     Task2
     ,  "task2"   
-    ,  128  
+    ,  512 
     ,  NULL
-    ,  1  
+    ,  3  
     ,  NULL );
     xTaskCreate(
     Task3
     ,  "task3"   
-    ,  128  
+    ,  256 
     ,  NULL
-    ,  1  
+    ,  2  
     ,  NULL );
     xTaskCreate(
     Task4and5
     ,  "task4and5"   
-    ,  128  
+    ,  256 
     ,  NULL
-    ,  1  
+    ,  2  
     ,  NULL );
     xTaskCreate(
     Task6
     ,  "task6"   
-    ,  128  
+    ,  256 
     ,  NULL
-    ,  1  
+    ,  3  
     ,  NULL );
     xTaskCreate(
     Task7and8
     ,  "task7and8"   
-    ,  128  
+    ,  256 
     ,  NULL
-    ,  1  
+    ,  3  
     ,  NULL );
     xTaskCreate(
     Task9
     ,  "task9"   
-    ,  128  
+    ,  256  
     ,  NULL
-    ,  1  
+    ,  3  
     ,  NULL );
 
 }
@@ -95,8 +109,9 @@ void loop() {
 
 void Task1(void *pvParameters ){
    digitalWrite(Watchdog,HIGH);//Send HIGH signal, turn LED on
-   vTaskDelay( 300 / portTICK_PERIOD_MS ); 
+   vTaskDelay(300 / portTICK_PERIOD_MS); 
    digitalWrite(Watchdog,LOW);//Send LOW signal, turn LED off
+   vTaskDelay(300 / portTICK_PERIOD_MS);
 }
 
 void Task2(void *pvParameters ){
@@ -104,15 +119,15 @@ void Task2(void *pvParameters ){
 }
 
 void Task3(void *pvParameters ){
-  while (digitalRead(1)== HIGH){
-    //Start timer 
-  }
-  //Stop timer
-  //Timer multiplied by frequency
+  int onTime = pulseIn(Watchdog,HIGH);//Get time pulse was High
+  int offTime = pulseIn(Watchdog,LOW);//Get time pulse was Low
+  int period = onTime+offTime;//Total time
+  Frequency = 1000000.0/period;//Get frequency
   
 }
 
 void Task4and5(void *pvParameters ){
+  
   //Get analogue reading 4 times
   int analogue1 = analogRead(ANALOGUE);
   int analogue2 = analogRead(ANALOGUE);
@@ -135,7 +150,7 @@ void Task6(void *pvParameters ){
 
 void Task7and8(void *pvParameters ){
   int error_code;
-  if (average_analogue > 3300/2){
+  if (average_analogue > 1023/2){
     error_code = 1;
     digitalWrite(LED,HIGH);//Send HIGH signal, turn LED on
   }
@@ -150,10 +165,11 @@ else{
 void Task9(void *pvParameters ){
   //CSV
   //Semaphores to wait for values
-  Serial.print(BUTTONstate);
-  Serial.print(",");
-  Serial.print(average_analogue);
-  Serial.print(",");
-  Serial.print(Frequency);
-    
+  if (BUTTONstate == HIGH){//Only print when Button pressed
+    Serial.print(BUTTONstate);
+    Serial.print(",");
+    Serial.print(average_analogue);
+    Serial.print(",");
+    Serial.print(Frequency);
+  } 
 }
